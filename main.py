@@ -1,10 +1,11 @@
 import asyncio
 import logging
 
-from moi_config import bot, dp
+from config import bot, dp
 from handlers.other_message import echo_router
 from handlers.picture import picture_router
-from handlers.na4alo import start_router
+from handlers.start import start_router
+from handlers.dialoq import opros_router
 
 
 async def main():
