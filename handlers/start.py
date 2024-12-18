@@ -26,7 +26,7 @@ async def start_handler(message: types.Message):
 @start_router.callback_query(F.data == "about_us")
 async def about_us(callback: types.CallbackQuery):
     await callback.answer()
-    await callback.message.answer("На калени, На калени")
+    await callback.message.answer("Развивающийся соло проект.")
 
 @start_router.callback_query(F.data == "donate")
 async def donate(callback: types.CallbackQuery):
