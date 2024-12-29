@@ -134,3 +134,77 @@ async def process_extra_comments(message: types.Message, state: FSMContext):
         f"\nДополнительные комментарии: {data['extra_comments']}"
     )
     await state.clear()
+class AddDish(StatesGroup):
+    name = State()
+    category = State()
+    price = State()
+    description = State()
+admin_router = Router()
+ADMIN_ID = 123456789  # Замените на ID вашего администратора
+
+
+@admin_router.message(Command("add_dish"))
+async def start_add_dish(message: types.Message, state: FSMContext):
+    if message.from_user.id != ADMIN_ID:
+        await message.answer("Команда доступна только администратору.")
+        return
+    await message.answer("Введите название блюда:")
+    await state.set_state(AddDish.name)
+
+
+@admin_router.message(AddDish.name)
+async def process_dish_name(message: types.Message, state: FSMContext):
+    await state.update_data(name=message.text.strip())
+    await message.answer("Введите категорию блюда (например, супы, вторые, напитки):")
+    await state.set_state(AddDish.category)
+
+
+@admin_router.message(AddDish.category)
+async def process_dish_category(message: types.Message, state: FSMContext):
+    await state.update_data(category=message.text.strip())
+    await message.answer("Введите цену блюда (в рублях):")
+    await state.set_state(AddDish.price)
+
+
+@admin_router.message(AddDish.price)
+async def process_dish_price(message: types.Message, state: FSMContext):
+    if not message.text.isdigit():
+        await message.answer("Цена должна быть числом. Попробуйте снова.")
+        return
+    await state.update_data(price=int(message.text))
+    await message.answer("Введите описание блюда:")
+    await state.set_state(AddDish.description)
+
+
+@admin_router.message(AddDish.description)
+async def process_dish_description(message: types.Message, state: FSMContext):
+    data = await state.get_data()
+    data["description"] = message.text.strip()
+
+    # Сохранение блюда в базу
+    conn = sqlite3.connect("database.db")
+    cursor = conn.cursor()
+    cursor.execute("""
+        CREATE TABLE IF NOT EXISTS dishes (
+            id INTEGER PRIMARY KEY AUTOINCREMENT,
+            name TEXT NOT NULL,
+            category TEXT NOT NULL,
+            price INTEGER NOT NULL,
+            description TEXT
+        )
+    """)
+    cursor.execute("""
+        INSERT INTO dishes (name, category, price, description)
+        VALUES (?, ?, ?, ?)
+    """, (data["name"], data["category"], data["price"], data["description"]))
+    conn.commit()
+    conn.close()
+
+    await message.answer(
+        f"Блюдо добавлено:\n"
+        f"\nНазвание: {data['name']}"
+        f"\nКатегория: {data['category']}"
+        f"\nЦена: {data['price']} руб."
+        f"\nОписание: {data['description']}"
+    )
+    await state.clear()
